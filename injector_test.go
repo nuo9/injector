@@ -11,6 +11,7 @@ import (
 
 type simpleAnimal struct {
 	Id   uint32
+	Name string
 	Bird struct {
 		Flying bool
 	}
@@ -23,6 +24,7 @@ type simpleAnimal struct {
 
 const content string = `
 Id: 10,
+Name: "2333",
 Bird: {
  Flying: true
 },
@@ -45,12 +47,27 @@ func TestInject(t *testing.T) {
 	})
 	errors = append(errors, e)
 
+	e = validate(&d, []string{"Name"}, "haha", func(d *simpleAnimal) interface{} {
+		return d.Name
+	})
+	errors = append(errors, e)
+
+	e = validate(&d, []string{"Name"}, 600, func(d *simpleAnimal) interface{} {
+		return d.Name
+	})
+	errors = append(errors, e)
+
 	e = validate(&d, []string{"Bird", "Flying"}, false, func(d *simpleAnimal) interface{} {
 		return d.Bird.Flying
 	})
 	errors = append(errors, e)
 
 	e = validate(&d, []string{"Dog", "Husky", "IQ"}, 11, func(d *simpleAnimal) interface{} {
+		return d.Dog.Husky.IQ
+	})
+	errors = append(errors, e)
+
+	e = validate(&d, []string{"Dog", "Husky", "IQ"}, "12", func(d *simpleAnimal) interface{} {
 		return d.Dog.Husky.IQ
 	})
 	errors = append(errors, e)
@@ -90,14 +107,26 @@ func validate(d *simpleAnimal, paths []string, value interface{}, getValue func(
 }
 
 func equals(a, b interface{}) bool {
+	as := reflect.TypeOf(a).Kind() == reflect.String
+	bs := reflect.TypeOf(b).Kind() == reflect.String
+	if as || bs {
+		return fmt.Sprint(a) == fmt.Sprint(b)
+	}
+
 	av := reflect.ValueOf(a)
 	bv := reflect.ValueOf(b)
 
-	convertible := av.Type().ConvertibleTo(bv.Type())
-	if !convertible {
-		return false
+	a2b := av.Type().ConvertibleTo(bv.Type())
+	if a2b {
+		av = av.Convert(bv.Type())
+		return reflect.DeepEqual(av.Interface(), bv.Interface())
 	}
 
-	av = av.Convert(bv.Type())
-	return reflect.DeepEqual(av.Interface(), bv.Interface())
+	b2a := bv.Type().ConvertibleTo(av.Type())
+	if b2a {
+		bv = bv.Convert(av.Type())
+		return reflect.DeepEqual(av.Interface(), bv.Interface())
+	}
+
+	return a == b
 }
