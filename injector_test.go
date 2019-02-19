@@ -22,25 +22,29 @@ type simpleAnimal struct {
 	}
 }
 
-const content string = `
-Id: 10,
-Name: "2333",
-Bird: {
- Flying: true
+const content string = `{
+"Id": 10,
+"Name": "2333",
+"Bird": {
+ "Flying": true
 },
-Dog: {
- Husky: {
-  IQ: 20
+"Dog": {
+ "Husky": {
+  "IQ": 3
  }
 }
-`
+}`
 
 func TestInject(t *testing.T) {
+	var e error
+
 	d := simpleAnimal{}
-	json.Unmarshal([]byte(content), &d)
+	e = json.Unmarshal([]byte(content), &d)
+	if e != nil {
+		t.Error(e)
+	}
 
 	errors := make([]error, 0)
-	var e error
 
 	e = validate(&d, []string{"Id"}, 666, func(d *simpleAnimal) interface{} {
 		return d.Id
