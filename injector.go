@@ -8,16 +8,19 @@ import (
 )
 
 func Inject(obj interface{}, paths []string, value interface{}) error {
+	// get field object from paths
 	field, e := travelPath(obj, paths)
 	if e != nil {
 		return e
 	}
 
+	// convert value type to required type
 	setValue, e := convertValue(field.Type(), value)
 	if e != nil {
 		return e
 	}
 
+	// set value to field
 	return setFieldValue(field, setValue)
 }
 
@@ -39,20 +42,23 @@ func travelPath(obj interface{}, paths []string) (reflect.Value, error) {
 }
 
 func convertValue(required reflect.Type, value interface{}) (reflect.Value, error) {
-	v, e := convertFromString(required, value)
+	// if value type is string
+	v, e := tryConvertFromString(required, value)
 	if e == nil {
 		return v, nil
 	}
 
-	v, e = convertToString(required, value)
+	// if required type is string
+	v, e = tryConvertToString(required, value)
 	if e == nil {
 		return v, nil
 	}
 
-	return convertByReflect(required, value)
+	// use reflect to convert
+	return tryConvertByReflect(required, value)
 }
 
-func convertByReflect(required reflect.Type, value interface{}) (reflect.Value, error) {
+func tryConvertByReflect(required reflect.Type, value interface{}) (reflect.Value, error) {
 	suppliedType := reflect.TypeOf(value)
 	convertible := suppliedType.ConvertibleTo(required)
 	if !convertible {
@@ -62,7 +68,7 @@ func convertByReflect(required reflect.Type, value interface{}) (reflect.Value, 
 	return reflect.ValueOf(value).Convert(required), nil
 }
 
-func convertFromString(required reflect.Type, value interface{}) (reflect.Value, error) {
+func tryConvertFromString(required reflect.Type, value interface{}) (reflect.Value, error) {
 	s, ok := value.(string)
 	if !ok {
 		return reflect.Value{}, fmt.Errorf("type %s is not string", reflect.TypeOf(value))
@@ -113,7 +119,7 @@ func convertFromString(required reflect.Type, value interface{}) (reflect.Value,
 	}
 }
 
-func convertToString(required reflect.Type, value interface{}) (reflect.Value, error) {
+func tryConvertToString(required reflect.Type, value interface{}) (reflect.Value, error) {
 	if !(required.Kind() == reflect.String) {
 		return reflect.Value{}, fmt.Errorf("required type %s is not string", required)
 	}
