@@ -24,26 +24,27 @@ func Inject(obj interface{}, paths []string, value interface{}) error {
 	return setFieldValue(field, setValue)
 }
 
-func travelPath(obj interface{}, paths []string) (reflect.Value, error) {
-	v := reflect.ValueOf(obj).Elem()
+func travelPath(obj interface{}, paths []string) (v reflect.Value, e error) {
+	v = reflect.ValueOf(obj).Elem()
 
 	for _, f := range paths {
 		v = v.FieldByName(f)
 		if !v.IsValid() {
-			return reflect.Value{}, fmt.Errorf("field %s is not valid", f)
+			e = fmt.Errorf("field %s is not valid", f)
+			return
 		}
 	}
 
 	if !v.CanSet() {
-		return reflect.Value{}, fmt.Errorf("fields %s cannot be set", strings.Join(paths, "."))
+		e = fmt.Errorf("fields %s cannot be set", strings.Join(paths, "."))
 	}
 
-	return v, nil
+	return
 }
 
-func convertValue(required reflect.Type, value interface{}) (reflect.Value, error) {
+func convertValue(required reflect.Type, value interface{}) (v reflect.Value, e error) {
 	// if value type is string
-	v, e := tryConvertFromString(required, value)
+	v, e = tryConvertFromString(required, value)
 	if e == nil {
 		return v, nil
 	}
@@ -58,14 +59,16 @@ func convertValue(required reflect.Type, value interface{}) (reflect.Value, erro
 	return tryConvertByReflect(required, value)
 }
 
-func tryConvertByReflect(required reflect.Type, value interface{}) (reflect.Value, error) {
+func tryConvertByReflect(required reflect.Type, value interface{}) (v reflect.Value, e error) {
 	suppliedType := reflect.TypeOf(value)
 	convertible := suppliedType.ConvertibleTo(required)
 	if !convertible {
-		return reflect.Value{}, fmt.Errorf("type %s is not convertible to %s", suppliedType, required)
+		e = fmt.Errorf("type %s is not convertible to %s", suppliedType, required)
+		return
 	}
 
-	return reflect.ValueOf(value).Convert(required), nil
+	v = reflect.ValueOf(value).Convert(required)
+	return
 }
 
 func tryConvertFromString(required reflect.Type, value interface{}) (reflect.Value, error) {
@@ -119,12 +122,14 @@ func tryConvertFromString(required reflect.Type, value interface{}) (reflect.Val
 	}
 }
 
-func tryConvertToString(required reflect.Type, value interface{}) (reflect.Value, error) {
+func tryConvertToString(required reflect.Type, value interface{}) (v reflect.Value, e error) {
 	if !(required.Kind() == reflect.String) {
-		return reflect.Value{}, fmt.Errorf("required type %s is not string", required)
+		e = fmt.Errorf("required type %s is not string", required)
+		return
 	}
 
-	return reflect.ValueOf(fmt.Sprint(value)), nil
+	v = reflect.ValueOf(fmt.Sprint(value))
+	return
 }
 
 func setFieldValue(field reflect.Value, set reflect.Value) error {
