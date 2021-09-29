@@ -8,6 +8,10 @@ import (
 )
 
 func Inject(obj interface{}, paths []string, value interface{}) error {
+	if e := check(obj, paths); e != nil {
+		return e
+	}
+
 	// get field object from paths
 	field, e := travelPath(obj, paths)
 	if e != nil {
@@ -22,6 +26,19 @@ func Inject(obj interface{}, paths []string, value interface{}) error {
 
 	// set value to field
 	return setFieldValue(field, setValue)
+}
+
+func check(obj interface{}, paths []string) error {
+	rv := reflect.ValueOf(obj)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return fmt.Errorf("require a pointer to obj")
+	}
+
+	if len(paths) == 0 {
+		return fmt.Errorf("require not empty paths")
+	}
+
+	return nil
 }
 
 func travelPath(obj interface{}, paths []string) (v reflect.Value, e error) {

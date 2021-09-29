@@ -20,6 +20,8 @@ type simpleAnimal struct {
 			IQ uint8
 		}
 	}
+
+	private string
 }
 
 const content string = `{
@@ -46,6 +48,7 @@ func TestInject(t *testing.T) {
 
 	errors := make([]error, 0)
 
+	// positive cases
 	e = validate(&d, []string{"Id"}, 666, func(d *simpleAnimal) interface{} {
 		return d.Id
 	})
@@ -87,6 +90,18 @@ func TestInject(t *testing.T) {
 		})
 	errors = append(errors, e)
 
+	// negative cases
+	e = Inject(&d, []string{"private"}, "test private")
+	if e == nil {
+		errors = append(errors, fmt.Errorf("should report error when inject private fields"))
+	}
+
+	e = Inject(&d, []string{}, "")
+	if e == nil {
+		errors = append(errors, fmt.Errorf("should report error when paths empty"))
+	}
+
+	// check results
 	hasError := false
 	for _, e := range errors {
 		if e != nil {
